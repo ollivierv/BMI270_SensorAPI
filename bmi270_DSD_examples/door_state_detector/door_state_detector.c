@@ -7,8 +7,8 @@
 /******************************************************************************/
 /*!                 Header Files                                              */
 #include <stdio.h>
-#include "bmi270_dsd.h"
-#include "common.h"
+#include "../../bmi270_dsd.h"
+#include "../common/zephyr_common.h"
 
 /******************************************************************************/
 /*!                 Macro definitions                                         */
@@ -21,7 +21,8 @@
 /******************************************************************************/
 /*!            Functions                                        */
 /* This function starts the execution of program. */
-int main(void)
+//int main(void)
+int door_state_detector_run(void)
 {
     /* Sensor initialization configuration. */
     struct bmi2_dev bmi2_dev;
@@ -84,7 +85,7 @@ int main(void)
     rslt = bmi270_dsd_init(&bmi2_dev);
     bmi2_error_codes_print_result(rslt);
 
-    printf("Configuration file uploaded\n");
+    printf("Configuration file for door state detection uploaded\n");
     printf("Chip ID :0x%x\n", bmi2_dev.chip_id);
 
     /* Disable advance power save mode. */
@@ -179,14 +180,14 @@ int main(void)
                     /* Get heading output. */
                     dsd_heading_output =
                         (float)(sensor_data.sens_data.door_state_detector_output.heading_output / 100.0);
-                    printf("Heading values = %4.2f\n", dsd_heading_output);
+                    printf("Heading values = %4.2f\n", (double)dsd_heading_output);
 
                     loop--;
                 }
             }
 
             printf("\nCheck heading output, please rotate sensor more than 90 deg\n");
-            while (dsd_heading_output < 90.0)
+            while (dsd_heading_output < (float)90.0)
             {
                 /* / * Get heading output. * / */
                 rslt = bmi270_dsd_get_feature_data(&sensor_data, BMI2_N_SENSE_COUNT_1, &bmi2_dev);
@@ -194,7 +195,7 @@ int main(void)
                 dsd_heading_output = (float)(sensor_data.sens_data.door_state_detector_output.heading_output / 100.0);
             }
 
-            printf("Heading values = %4.2f > 90 deg\n", dsd_heading_output);
+            printf("Heading values = %4.2f > 90 deg\n", (double)dsd_heading_output);
 
             /* Disable the selected sensor. */
             printf("\nDisable the door lock\n");
