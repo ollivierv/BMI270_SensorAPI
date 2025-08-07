@@ -11,32 +11,9 @@
 #include "zephyr_common.h"
 #include "bmi2_defs.h"
 
-
-
-/**
- *
- */
+// Zephyr includes
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/i2c.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/i2c.h>
-
-
-static const struct device * i2c1 = DEVICE_DT_GET(DT_NODELABEL(i2c1));
-//const struct i2c_dt_spec i2c1_dt = I2C_DT_SPEC_GET(DT_NODELABEL(i2c1));
-
-bool i2c1_is_ready()
-{
-  if(!device_is_ready(i2c1)) {
-    //LOG_ERR("i2c bus %s is not ready", i2c1->name);
-    return false;
-  }
-  return true;
-}
-
-
-
 
 
 
@@ -59,27 +36,27 @@ static uint8_t bus_inst;
 /*! Structure to hold interface configurations */
 static struct coines_intf_config intf_conf;
 
+/*! Zephyr i2c external reference */
+const struct device * __bmi270_i2c;
+
+
 /******************************************************************************/
 /*!                User interface functions                                   */
 
 /*!
- * I2C read function map to COINES platform
+ * I2C read function map for Zephyr platform
  */
 BMI2_INTF_RETURN_TYPE bmi2_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
-    //struct coines_intf_config intf_info = *(struct coines_intf_config *)intf_ptr;
-    //return coines_read_i2c((enum coines_i2c_bus)intf_info.bus, intf_info.dev_addr, reg_addr, reg_data, (uint16_t)len);
-    return i2c_burst_read(i2c1, BMI2_I2C_PRIM_ADDR, reg_addr, reg_data, len);
+    return i2c_burst_read(__bmi270_i2c, BMI2_I2C_PRIM_ADDR, reg_addr, reg_data, len);
 }
 
 /*!
- * I2C write function map to COINES platform
+ * I2C write function map to Zephyr platform
  */
 BMI2_INTF_RETURN_TYPE bmi2_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
-    //struct coines_intf_config intf_info = *(struct coines_intf_config *)intf_ptr;
-    //return coines_write_i2c((enum coines_i2c_bus)intf_info.bus, intf_info.dev_addr, reg_addr, (uint8_t *)reg_data, (uint16_t)len);
-    return i2c_burst_write(i2c1, BMI2_I2C_PRIM_ADDR, reg_addr, reg_data, len);
+    return i2c_burst_write(__bmi270_i2c, BMI2_I2C_PRIM_ADDR, reg_addr, reg_data, len);
 }
 
 /*!
@@ -104,11 +81,10 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
 */
 
 /*!
- * Delay function map to COINES platform
+ * Delay function map to Zephyr platform
  */
 void bmi2_delay_us(uint32_t period, void *intf_ptr)
 {
-    //coines_delay_usec(period);
     k_usleep(period);
 }
 
@@ -182,8 +158,7 @@ void get_board_info(uint8_t *board)
 int8_t bmi2_interface_init(struct bmi2_dev *bmi, uint8_t intf)
 {
     int8_t rslt = BMI2_OK;
-    printf("\n");
-
+   
     if (bmi != NULL)
     {
 
@@ -309,6 +284,7 @@ void bmi2_error_codes_print_result(int8_t rslt)
 {
     switch (rslt)
     {
+        #ifdef CONFIG_LOG
         case BMI2_OK:
 
             /* Do nothing */
@@ -494,6 +470,11 @@ void bmi2_error_codes_print_result(int8_t rslt)
         default:
             printf("Error [%d] : Unknown error code\r\n", rslt);
             break;
+        #else
+        default:
+            printf("LOG are not enabled !\r\n");
+            break;
+        #endif
     }
 }
 
