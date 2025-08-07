@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #include "zephyr_common.h"
-#include "../../bmi2_defs.h"
+#include "bmi2_defs.h"
 
 
 

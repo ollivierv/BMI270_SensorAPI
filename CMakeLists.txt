@@ -1,7 +1,8 @@
 
 if(CONFIG_IMU_BMI270)
-  #FILE(GLOB app_sources *.c)
-  #target_sources(app PRIVATE ${app_sources})
+
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+  #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bmi270_DSD_examples/common)
 
   target_sources(app PRIVATE
     bmi2.c

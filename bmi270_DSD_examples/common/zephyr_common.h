@@ -14,8 +14,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "../../bmi2.h"
-//#include "coines.h"
+#include "bmi2.h"
 
 /******************************************************************************/
 /*!                       Macro definitions                                   */
