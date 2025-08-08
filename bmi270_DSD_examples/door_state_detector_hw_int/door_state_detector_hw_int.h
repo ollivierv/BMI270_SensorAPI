@@ -1,0 +1,1 @@
+int door_state_detector_run_hw_int();

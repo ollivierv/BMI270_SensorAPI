@@ -9,6 +9,7 @@ if(CONFIG_IMU_BMI270)
     bmi270_dsd.c
     bmi270_DSD_examples/common/zephyr_common.c
     bmi270_DSD_examples/door_state_detector/door_state_detector.c
+    bmi270_DSD_examples/door_state_detector_hw_int/door_state_detector_hw_int.c
   )
 
 endif()

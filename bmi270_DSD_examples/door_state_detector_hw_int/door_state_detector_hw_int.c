@@ -8,8 +8,9 @@
 /*!                 Header Files                                              */
 #include <stdio.h>
 #include "bmi270_dsd.h"
-#include "common.h"
-#include "coines.h"
+//#include "common.h"
+//#include "coines.h"
+#include "../common/zephyr_common.h"
 
 /******************************************************************************/
 /*!           Global variable Declaration                                     */
@@ -19,17 +20,20 @@ volatile uint8_t drdy_int_status = 0;
 /*!
  * @brief This internal API is used to set the interrupt status
  */
+/*
 static void interrupt_callback(uint32_t param1, uint32_t param2)
 {
     (void)param1;
     (void)param2;
     drdy_int_status = 1;
 }
+*/
 
 /******************************************************************************/
 /*!            Functions                                        */
 /* This function starts the execution of program. */
-int main(void)
+//int main(void)
+int door_state_detector_run_hw_int()
 {
     /* Sensor initialization configuration. */
     struct bmi2_dev bmi2_dev;
@@ -62,7 +66,7 @@ int main(void)
     uint8_t dsd_event_out = 0;
     float dsd_heading_output = 0.0;
 
-    uint8_t board = 0;
+    //uint8_t board = 0;
 
     /* Remap Output*/
     uint8_t z_sign = 0;
@@ -88,7 +92,7 @@ int main(void)
      * For I2C : BMI2_I2C_INTF
      * For SPI : BMI2_SPI_INTF
      */
-    rslt = bmi2_interface_init(&bmi2_dev, BMI2_SPI_INTF);
+    rslt = bmi2_interface_init(&bmi2_dev, BMI2_I2C_INTF);
     bmi2_error_codes_print_result(rslt);
 
     /* Initialize bmi270_dsd. */
@@ -137,12 +141,15 @@ int main(void)
     rslt = bmi2_get_int_pin_config(&pin_config_1, &bmi2_dev);
     bmi2_error_codes_print_result(rslt);
 
+
     /* Get board information */
-    get_board_info(&board);
+    //get_board_info(&board);
+
 
     /*
      * Attach interrupt based on board
      */
+    /*
     if (board == BOARD_MCU_APP20)
     {
         if (pin_config.pin_type == BMI2_INT1)
@@ -168,6 +175,7 @@ int main(void)
         }
     }
 #endif
+    */
 
     if (rslt == BMI2_OK)
     {
@@ -230,7 +238,7 @@ int main(void)
                             /* Get heading output. */
                             dsd_heading_output =
                                 (float)(sensor_data.sens_data.door_state_detector_output.heading_output / 100.0);
-                            printf("Heading values = %4.2f\n", dsd_heading_output);
+                            printf("Heading values = %4.2f\n", (double)dsd_heading_output);
 
                             loop--;
                         }
@@ -238,7 +246,7 @@ int main(void)
                 }
 
                 printf("\nCheck heading output, please rotate sensor more than 90 deg\n");
-                while (dsd_heading_output < 90.0)
+                while (dsd_heading_output < (float)90.0)
                 {
                     /* / * Get heading output. * / */
                     rslt = bmi270_dsd_get_feature_data(&sensor_data, 1, &bmi2_dev);
@@ -247,7 +255,7 @@ int main(void)
                         (float)(sensor_data.sens_data.door_state_detector_output.heading_output / 100.0);
                 }
 
-                printf("Heading values = %4.2f > 90 deg\n", dsd_heading_output);
+                printf("Heading values = %4.2f > 90 deg\n", (double)dsd_heading_output);
 
                 /* Disable the selected sensor. */
                 printf("\nDisable the door lock\n");
