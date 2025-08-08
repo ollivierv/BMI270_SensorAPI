@@ -16,6 +16,8 @@
 /*!           Global variable Declaration                                     */
 
 volatile uint8_t drdy_int_status = 0;
+struct bmi2_sens_config config; // now global to be accessible from outside
+struct bmi2_sens_config * bmi270_config_ptr;
 
 /*!
  * @brief This internal API is used to set the interrupt status
@@ -35,6 +37,8 @@ static void interrupt_callback(uint32_t param1, uint32_t param2)
 //int main(void)
 int door_state_detector_run_hw_int()
 {
+    bmi270_config_ptr = &config;
+
     /* Sensor initialization configuration. */
     struct bmi2_dev bmi2_dev;
 
@@ -42,7 +46,7 @@ int door_state_detector_run_hw_int()
     struct bmi2_feat_sensor_data sensor_data = { 0 };
 
     /* Structure to define the type of sensor and its configurations. */
-    struct bmi2_sens_config config;
+    //struct bmi2_sens_config config;
 
     /* Status of api are returned to this variable. */
     int8_t rslt;
@@ -258,9 +262,11 @@ int door_state_detector_run_hw_int()
                 printf("Heading values = %4.2f > 90 deg\n", (double)dsd_heading_output);
 
                 /* Disable the selected sensor. */
+                /*
                 printf("\nDisable the door lock\n");
-                rslt = bmi270_dsd_sensor_disable(sensor_sel, 3, &bmi2_dev);
+                rslt = bmi270_dsd_sensor_disable(sensor_sel, BMI2_N_SENSE_COUNT_3, &bmi2_dev);
                 bmi2_error_codes_print_result(rslt);
+                */
 
                 /* Store remap info and gyro bias*/
                 printf("\nStore remap info and gyro bias.\n");
