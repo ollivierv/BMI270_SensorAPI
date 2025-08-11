@@ -14,6 +14,11 @@
 // Zephyr includes
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(BMI270_zephyr_common, CONFIG_IMU_API_LOG_LEVEL);
+
+// Redefine printf to LOG_ERR
+#define printf(...) LOG_ERR(__VA_ARGS__)
 
 
 
@@ -158,14 +163,14 @@ void get_board_info(uint8_t *board)
 int8_t bmi2_interface_init(struct bmi2_dev *bmi, uint8_t intf)
 {
     int8_t rslt = BMI2_OK;
-   
+
     if (bmi != NULL)
     {
 
         // Bus configuration : I2C
         if (intf == BMI2_I2C_INTF)
         {
-          printf("Interface : I2C\n");
+          //printf("Interface : I2C\n");
 
           // To initialize the user I2C function
           dev_addr    = BMI2_I2C_PRIM_ADDR;
@@ -284,7 +289,6 @@ void bmi2_error_codes_print_result(int8_t rslt)
 {
     switch (rslt)
     {
-        #ifdef CONFIG_LOG
         case BMI2_OK:
 
             /* Do nothing */
@@ -470,11 +474,7 @@ void bmi2_error_codes_print_result(int8_t rslt)
         default:
             printf("Error [%d] : Unknown error code\r\n", rslt);
             break;
-        #else
-        default:
-            printf("LOG are not enabled !\r\n");
-            break;
-        #endif
+
     }
 }
 
