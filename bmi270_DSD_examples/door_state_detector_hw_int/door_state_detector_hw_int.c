@@ -122,11 +122,35 @@ int door_state_detector_run_hw_int()
     rslt = bmi270_dsd_get_sensor_config(&config, BMI2_N_SENSE_COUNT_1, &bmi2_dev);
     bmi2_error_codes_print_result(rslt);
 
+
+#if 1 //VINCENT
+
+#define MODIFIED_DOOR_CLOSED_THR  1000  /* 2.1 deg */
+
+//#ifdef CHANGE_DOOR_CLOSED_ANGLE
+    uint16_t door_closed_thr = config.cfg.door_state_detector.door_closed_thr;
+    printf("door_closed_thr = %d\n", door_closed_thr);
+
+    config.cfg.door_state_detector.door_closed_thr = MODIFIED_DOOR_CLOSED_THR;
+    rslt = bmi270_dsd_set_sensor_config(&config, 1, &bmi2_dev);
+
+    struct bmi2_sens_config get_config;
+    get_config.type = BMI2_DOOR_STATE_DETECTOR;
+    rslt = bmi270_dsd_get_sensor_config(&get_config, 1, &bmi2_dev);
+    door_closed_thr = get_config.cfg.door_state_detector.door_closed_thr;
+    printf("Modified door closed threshold = %d\n", door_closed_thr);
+//#endif
+
+
+#endif
+
+
     printf("\nInterrupt configuration\n");
 
     /* Map the feature interrupt for door state detector. */
     rslt = bmi270_dsd_map_feat_int(&sens_int, BMI2_N_SENSE_COUNT_1, &bmi2_dev);
     bmi2_error_codes_print_result(rslt);
+
 
     printf("Interrupt Enabled: \t %s\n", enum_to_string(BMI2_DOOR_STATE_DETECTOR));
     printf("Interrupt Mapped to: \t %s\n\n", enum_to_string(BMI2_INT1));

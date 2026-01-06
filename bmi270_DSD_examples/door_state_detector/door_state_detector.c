@@ -14,9 +14,9 @@
 /*!                 Macro definitions                                         */
 
 /*Uncomment below line to modify door closed threshold value */
-/*#define  CHANGE_DOOR_CLOSED_ANGLE */
+#define  CHANGE_DOOR_CLOSED_ANGLE
 
-#define MODIFIED_DOOR_CLOSED_THR  210  /* 2.1 deg */
+#define MODIFIED_DOOR_CLOSED_THR  500  /* 2.1 deg */
 
 /******************************************************************************/
 /*!            Functions                                        */
