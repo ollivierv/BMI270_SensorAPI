@@ -46,6 +46,12 @@ const float gyro_dps = BMI2_GYR_RANGE_125_VAL;
 #endif
 
 
+// static
+static const uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
+static struct bmi2_sens_config config;
+
+
+
 /******************************************************************************/
 /*!           Static Function Declaration                                     */
 
@@ -94,12 +100,7 @@ static struct bmi2_dev bmi;
 
 int custom_door___accel_gyro_init(void)
 {
-
     int8_t rslt;
-    //struct bmi2_dev bmi;
-    uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
-    struct bmi2_sens_config config;
-
 
    /* Interface reference is given as a parameter
      * For I2C : BMI2_I2C_INTF
@@ -120,28 +121,47 @@ int custom_door___accel_gyro_init(void)
 
         if (rslt == BMI2_OK)
         {
-            /* NOTE:
-             * Accel and Gyro enable must be done after setting configurations
-             */
-            rslt = bmi2_sensor_enable(sensor_list, 2, &bmi);
-            bmi2_error_codes_print_result(rslt);
-
-            if (rslt == BMI2_OK)
-            {
-                config.type = BMI2_ACCEL;
-
-                /* Get the accel/gyro configurations. */
-                rslt = bmi2_get_sensor_config(&config, 1, &bmi);
-                bmi2_error_codes_print_result(rslt);
-
-                return 0;
-            }
+            return 0;
         }
     }
 
     return -1;
 
 }
+
+
+int custom_door___accel_gyro_enable(void){
+
+    /**
+     * NOTE:
+     * Accel and Gyro enable must be done after setting configurations
+     */
+
+    int8_t rslt = bmi2_sensor_enable(sensor_list, 2, &bmi);
+    bmi2_error_codes_print_result(rslt);
+
+    if (rslt == BMI2_OK)
+    {
+        config.type = BMI2_ACCEL;
+
+        // Get the accel configurations
+        rslt = bmi2_get_sensor_config(&config, 1, &bmi);
+        bmi2_error_codes_print_result(rslt);
+        return 0;
+    }
+
+    return -1;
+}
+
+int custom_door___accel_gyro_disable(void){
+
+    int8_t rslt = bmi2_sensor_disable(sensor_list, 2, &bmi);
+    bmi2_error_codes_print_result(rslt);
+
+    return (bmi2_set_adv_power_save(BMI2_ENABLE, &bmi) == BMI2_OK) ? 0 : -1;
+}
+
+
 
 
 // Fonction qui lit les données accel/gyro UNE FOIS et les place dans la structure
@@ -167,6 +187,7 @@ int custom_door___accel_gyro_read(custom_accel_gyro_data_t *data) {
 }
 
 
+/*
 // Fonction qui affiche les données accel/gyro
 void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_t *data) {
     printf("%5d, %+7.1f, %+7.1f, %+7.1f, %+7.0f, %+7.0f, %+7.0f\n",
@@ -179,7 +200,7 @@ void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_
            (double)data->gyr_z);
 }
 
-
+*/
 
 
 
