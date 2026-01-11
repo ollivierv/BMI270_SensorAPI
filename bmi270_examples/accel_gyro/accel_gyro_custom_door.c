@@ -25,9 +25,9 @@
 
 
 // tune these values as needed to lower power consumption
-#define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_100HZ
-#define BMI2_GYR_ODR_SPEED_HZ   BMI2_GYR_ODR_100HZ
-#define BMI2_GYR_RANGE_DPS      BMI2_GYR_RANGE_1000
+#define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_50HZ   // 50 Hz
+#define BMI2_GYR_ODR_SPEED_HZ   BMI2_GYR_ODR_50HZ   // 50 Hz
+#define BMI2_GYR_RANGE_DPS      BMI2_GYR_RANGE_250  // 250 dps
 
 
 // gyro range selection
@@ -207,116 +207,6 @@ void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_
 
 
 
-
-
-
-
-
-/* This function starts the execution of program. */
-int main_accel_gyro(void)
-{
-    /* Status of api are returned to this variable. */
-    int8_t rslt;
-
-    /* Variable to define limit to print accel data. */
-    uint32_t limit = 1000000;
-
-    /* Assign accel and gyro sensor to variable. */
-    uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
-
-    /* Sensor initialization configuration. */
-    struct bmi2_dev bmi;
-
-    /* Structure to define type of sensor and their respective data. */
-    struct bmi2_sens_data sensor_data = { { 0 } };
-
-    uint32_t indx = 0;
-
-    float acc_x = 0, acc_y = 0, acc_z = 0;
-    float gyr_x = 0, gyr_y = 0, gyr_z = 0;
-    struct bmi2_sens_config config;
-
-    /* Interface reference is given as a parameter
-     * For I2C : BMI2_I2C_INTF
-     * For SPI : BMI2_SPI_INTF
-     */
-    rslt = bmi2_interface_init(&bmi, BMI2_I2C_INTF); // custom uses I2C
-    bmi2_error_codes_print_result(rslt);
-
-    /* Initialize bmi270. */
-    rslt = bmi270_init(&bmi);
-    bmi2_error_codes_print_result(rslt);
-
-    if (rslt == BMI2_OK)
-    {
-        /* Accel and gyro configuration settings. */
-        rslt = set_accel_gyro_config(&bmi);
-        bmi2_error_codes_print_result(rslt);
-
-        if (rslt == BMI2_OK)
-        {
-            /* NOTE:
-             * Accel and Gyro enable must be done after setting configurations
-             */
-            rslt = bmi2_sensor_enable(sensor_list, 2, &bmi);
-            bmi2_error_codes_print_result(rslt);
-
-            if (rslt == BMI2_OK)
-            {
-                config.type = BMI2_ACCEL;
-
-                /* Get the accel/gyro configurations. */
-                rslt = bmi2_get_sensor_config(&config, 1, &bmi);
-                bmi2_error_codes_print_result(rslt);
-
-
-
-
-                printf(
-                    "\nline, Acc_ms2_X, Acc_ms2_Y, Acc_ms2_Z, Gyro_DPS_X, Gyro_DPS_Y, Gyro_DPS_Z\n");
-
-                while (indx <= limit)
-                {
-                    k_msleep(100); // Sleep for 100ms
-                    rslt = bmi2_get_sensor_data(&sensor_data, &bmi);
-                    bmi2_error_codes_print_result(rslt);
-
-                    if ((rslt == BMI2_OK) && (sensor_data.status & BMI2_DRDY_ACC) &&
-                        (sensor_data.status & BMI2_DRDY_GYR))
-                    {
-                        /* Converting lsb to meter per second squared for 16 bit accelerometer at 2G range. */
-                        acc_x = lsb_to_mps2(sensor_data.acc.x, (float)2, bmi.resolution);
-                        acc_y = lsb_to_mps2(sensor_data.acc.y, (float)2, bmi.resolution);
-                        acc_z = lsb_to_mps2(sensor_data.acc.z, (float)2, bmi.resolution);
-
-                        /* Converting lsb to degree per second for 16 bit gyro at 2000dps range. */
-                        gyr_x = lsb_to_dps(sensor_data.gyr.x, (float)2000, bmi.resolution);
-                        gyr_y = lsb_to_dps(sensor_data.gyr.y, (float)2000, bmi.resolution);
-                        gyr_z = lsb_to_dps(sensor_data.gyr.z, (float)2000, bmi.resolution);
-
-                        //printf("%5d, %+7.2f, %+7.2f, %+7.2f, %+7.2f, %+7.2f, %+7.2f\n",
-                        printf("%5d, %+7.1f, %+7.1f, %+7.1f, %+7.0f, %+7.0f, %+7.0f\n",
-                               indx,
-                               (double)acc_x,
-                               (double)acc_y,
-                               (double)acc_z,
-                               (double)gyr_x,
-                               (double)gyr_y,
-                               (double)gyr_z);
-
-
-                        indx++;
-                    }
-                }
-            }
-        }
-    }
-
-    bmi2_coines_deinit();
-
-    return rslt;
-}
-
 /*!
  * @brief This internal API is used to set configurations for accel and gyro.
  */
@@ -357,6 +247,7 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
          * this has an adverse effect on the power consumed.
          */
         config[ACCEL].cfg.acc.bwp = BMI2_ACC_NORMAL_AVG4;
+        #warning "voir pour augmenter cette valeur d apres chatgpt"
 
         /* Enable the filter performance mode where averaging of samples
          * will be done based on above set bandwidth and ODR.
@@ -382,7 +273,7 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
          *  0 -> Ultra low power mode(Default)
          *  1 -> High performance mode
          */
-        config[GYRO].cfg.gyr.noise_perf = BMI2_POWER_OPT_MODE;
+        config[GYRO].cfg.gyr.noise_perf = BMI2_POWER_OPT_MODE; //BMI2_PERF_OPT_MODE;
 
         /* Enable/Disable the filter performance mode where averaging of samples
          * will be done based on above set bandwidth and ODR.
