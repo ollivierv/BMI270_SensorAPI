@@ -328,26 +328,8 @@ int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
     uint16_t count = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
     //printf("accel frames extracted:%d ; gyro frames extracted:%d \n", accel_frame_length, gyro_frame_length);
     //printf("FIFO length:%d\n", count);
-    /*
-    custom_accel_gyro_data_t sample;
 
-    // read accel fifo
-    for(uint16_t i = 0; i < accel_frame_length; i++) {
-        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
-        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
-        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
-    }
-
-
-    for(uint16_t i = 0; i < accel_frame_length; i++) {
-        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
-        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
-        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
-    }
-        */
-
-
-    for (uint16_t i = 0; i < count; i++) {
+    for(uint16_t i = 0; i < count; i++) {
         custom_accel_gyro_data_t sample;
 
         sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
@@ -366,32 +348,11 @@ int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
 }
 
 
-void custom_door___accel_gyro_fifo_flush(void)
-{
-    //bmi2_flush_fifo(&bmi);
-    #warning "implement bmi2_flush_fifo"
-}
-
 #endif
 
 
 
 
-
-/*
-// Fonction qui affiche les données accel/gyro
-void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_t *data) {
-    printf("%5d, %+7.1f, %+7.1f, %+7.1f, %+7.0f, %+7.0f, %+7.0f\n",
-           indx,
-           (double)data->acc_x,
-           (double)data->acc_y,
-           (double)data->acc_z,
-           (double)data->gyr_x,
-           (double)data->gyr_y,
-           (double)data->gyr_z);
-}
-
-*/
 
 
 
@@ -438,7 +399,6 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
          * this has an adverse effect on the power consumed.
          */
         config[ACCEL].cfg.acc.bwp = BMI2_ACC_NORMAL_AVG4;
-        #warning "voir pour augmenter cette valeur d apres chatgpt"
 
         /* Enable the filter performance mode where averaging of samples
          * will be done based on above set bandwidth and ODR.
