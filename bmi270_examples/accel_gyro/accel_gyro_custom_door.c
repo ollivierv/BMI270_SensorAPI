@@ -23,6 +23,9 @@
 #define ACCEL                   UINT8_C(0x00)
 #define GYRO                    UINT8_C(0x01)
 
+// Enable FIFO in imu
+#define WITH_FIFO               1
+
 
 // tune these values as needed to lower power consumption
 #define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_50HZ   // 50 Hz
@@ -44,6 +47,32 @@ const float gyro_dps = BMI2_GYR_RANGE_125_VAL;
 #else
 #error "gyro_dps unknown"
 #endif
+
+
+
+
+
+
+#if FIFO_AI
+
+    #define BMI_FIFO_BUFFER_SIZE 512
+
+    //static uint8_t fifo_buffer[BMI_FIFO_BUFFER_SIZE];
+    //static struct bmi2_fifo_frame fifo_frame;
+
+    /*
+    typedef struct {
+        float acc_x, acc_y, acc_z;   // m/s²
+        float gyr_x, gyr_y, gyr_z;   // dps
+    } custom_accel_gyro_data_t;
+     */
+
+#endif
+
+
+
+
+
 
 
 // static
@@ -121,6 +150,19 @@ int custom_door___accel_gyro_init(void)
 
         if (rslt == BMI2_OK)
         {
+            #if WITH_FIFO
+
+                /* Disable advanced power save before FIFO */
+                bmi2_set_adv_power_save(BMI2_DISABLE, &bmi);
+
+                /* Disable all FIFO configurations first */
+                bmi2_set_fifo_config(BMI2_FIFO_ALL_EN, BMI2_DISABLE, &bmi);
+
+                /* Enable FIFO for accel and gyro (header mode is default) */
+                bmi2_set_fifo_config(BMI2_FIFO_ACC_EN | BMI2_FIFO_GYR_EN, BMI2_ENABLE, &bmi);
+
+            #endif
+
             return 0;
         }
     }
@@ -172,11 +214,10 @@ int custom_door___accel_gyro_read(custom_accel_gyro_data_t *data) {
     rslt = bmi2_get_sensor_data(&sensor_data, &bmi);
     bmi2_error_codes_print_result(rslt);
 
-    if ((rslt == BMI2_OK) && (sensor_data.status & BMI2_DRDY_ACC) &&
-        (sensor_data.status & BMI2_DRDY_GYR)) {
-        data->acc_x = lsb_to_mps2(sensor_data.acc.x, (float)2, bmi.resolution);
-        data->acc_y = lsb_to_mps2(sensor_data.acc.y, (float)2, bmi.resolution);
-        data->acc_z = lsb_to_mps2(sensor_data.acc.z, (float)2, bmi.resolution);
+    if ((rslt == BMI2_OK) && (sensor_data.status & BMI2_DRDY_ACC) && (sensor_data.status & BMI2_DRDY_GYR)) {
+        data->acc_x = lsb_to_mps2(sensor_data.acc.x,  2.0f, bmi.resolution);
+        data->acc_y = lsb_to_mps2(sensor_data.acc.y,  2.0f, bmi.resolution);
+        data->acc_z = lsb_to_mps2(sensor_data.acc.z,  2.0f, bmi.resolution);
 
         data->gyr_x = lsb_to_dps(sensor_data.gyr.x, gyro_dps, bmi.resolution);
         data->gyr_y = lsb_to_dps(sensor_data.gyr.y, gyro_dps, bmi.resolution);
@@ -185,6 +226,156 @@ int custom_door___accel_gyro_read(custom_accel_gyro_data_t *data) {
     }
     return -1;
 }
+
+
+
+
+
+
+
+#if WITH_FIFO
+
+
+/******************************************************************************/
+/*!                  Macros                                                   */
+
+/*! Buffer size allocated to store raw FIFO data. */
+#define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
+
+/*! Length of data to be read from FIFO. */
+#define BMI2_FIFO_RAW_DATA_USER_LENGTH  UINT16_C(2048)
+
+/*! Number of accel frames to be extracted from FIFO. */
+
+/*! Calculation for frame count: Total frame count = Fifo buffer size(2048)/ Total frames(6 Accel, 6 Gyro and 1 header,
+ * totaling to 13) which equals to 157.
+ *
+ * Extra frames to parse sensortime da  ta
+ */
+#define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(185)
+
+/*! Number of gyro frames to be extracted from FIFO. */
+#define BMI2_FIFO_GYRO_FRAME_COUNT      UINT8_C(185)
+
+/*! Macro to read sensortime byte in FIFO. */
+#define SENSORTIME_OVERHEAD_BYTE        UINT8_C(220)
+
+/******************************************************************************/
+/*!                        Global Variables                                   */
+
+/* To read sensortime, extra 3 bytes are added to fifo buffer. */
+uint16_t fifo_buffer_size = BMI2_FIFO_RAW_DATA_BUFFER_SIZE + SENSORTIME_OVERHEAD_BYTE;
+
+/* Number of bytes of FIFO data
+ * NOTE : Dummy byte (for SPI Interface) required for FIFO data read must be given as part of array size
+ * Array size same as fifo_buffer_size
+ */
+uint8_t fifo_data[BMI2_FIFO_RAW_DATA_BUFFER_SIZE + SENSORTIME_OVERHEAD_BYTE];
+
+/* Array of accelerometer frames -> Total bytes =
+* 157 * (6 axes + 1 header bytes) = 1099 bytes */
+struct bmi2_sens_axes_data fifo_accel_data[BMI2_FIFO_ACCEL_FRAME_COUNT] = { { 0 } };
+
+/* Array of gyro frames -> Total bytes =
+ * 157 * (6 axes + 1 header bytes) = 1099 bytes */
+struct bmi2_sens_axes_data fifo_gyro_data[BMI2_FIFO_GYRO_FRAME_COUNT] = { { 0 } };
+
+
+
+int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
+{
+    //printf("FIFO.\n");
+
+    if(cb == NULL) { return -1; }
+
+    int8_t rslt;
+    uint16_t fifo_length = 0;
+
+    // initialize FIFO frame structure
+    struct bmi2_fifo_frame fifoframe = {0};
+
+    uint16_t accel_frame_length = BMI2_FIFO_ACCEL_FRAME_COUNT;
+    uint16_t gyro_frame_length  = BMI2_FIFO_GYRO_FRAME_COUNT;
+
+
+    /* Get FIFO length */
+    rslt = bmi2_get_fifo_length(&fifo_length, &bmi);
+    bmi2_error_codes_print_result(rslt);
+    if (rslt != BMI2_OK || fifo_length == 0) {
+        return -2;
+    }
+
+    /* Setup FIFO frame */
+    fifoframe.data   = fifo_data;
+    fifoframe.length = fifo_length + bmi.dummy_byte;
+
+    /* Read FIFO */
+    rslt = bmi2_read_fifo_data(&fifoframe, &bmi);
+    bmi2_error_codes_print_result(rslt);
+    if (rslt != BMI2_OK) {
+        return -3;
+    }
+
+
+
+    /* Extract accel */
+    bmi2_extract_accel(fifo_accel_data, &accel_frame_length, &fifoframe, &bmi);
+
+    /* Extract gyro */
+    bmi2_extract_gyro(fifo_gyro_data, &gyro_frame_length, &fifoframe, &bmi);
+
+    /* Pair accel + gyro by index */
+    uint16_t count = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
+    //printf("accel frames extracted:%d ; gyro frames extracted:%d \n", accel_frame_length, gyro_frame_length);
+    //printf("FIFO length:%d\n", count);
+    /*
+    custom_accel_gyro_data_t sample;
+
+    // read accel fifo
+    for(uint16_t i = 0; i < accel_frame_length; i++) {
+        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
+        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
+        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
+    }
+
+
+    for(uint16_t i = 0; i < accel_frame_length; i++) {
+        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
+        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
+        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
+    }
+        */
+
+
+    for (uint16_t i = 0; i < count; i++) {
+        custom_accel_gyro_data_t sample;
+
+        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
+        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
+        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
+
+        sample.gyr_x = lsb_to_dps(fifo_gyro_data[i].x, gyro_dps, bmi.resolution);
+        sample.gyr_y = lsb_to_dps(fifo_gyro_data[i].y, gyro_dps, bmi.resolution);
+        sample.gyr_z = lsb_to_dps(fifo_gyro_data[i].z, gyro_dps, bmi.resolution);
+
+        cb(&sample, ctx);
+    }
+
+
+    return 0;
+}
+
+
+void custom_door___accel_gyro_fifo_flush(void)
+{
+    //bmi2_flush_fifo(&bmi);
+    #warning "implement bmi2_flush_fifo"
+}
+
+#endif
+
+
+
 
 
 /*
