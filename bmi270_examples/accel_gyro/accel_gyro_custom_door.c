@@ -8,7 +8,6 @@
 /*!                 Header Files                                              */
 #include <stdio.h>
 #include <math.h>
-#include "bmi270.h"
 #include "accel_gyro_custom_door.h"
 #include "../common/zephyr_common.h"
 
@@ -52,29 +51,6 @@ const float gyro_dps = BMI2_GYR_RANGE_125_VAL;
 
 
 
-
-#if FIFO_AI
-
-    #define BMI_FIFO_BUFFER_SIZE 512
-
-    //static uint8_t fifo_buffer[BMI_FIFO_BUFFER_SIZE];
-    //static struct bmi2_fifo_frame fifo_frame;
-
-    /*
-    typedef struct {
-        float acc_x, acc_y, acc_z;   // m/s²
-        float gyr_x, gyr_y, gyr_z;   // dps
-    } custom_accel_gyro_data_t;
-     */
-
-#endif
-
-
-
-
-
-
-
 // static
 static const uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
 static struct bmi2_sens_config config;
@@ -103,7 +79,7 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi);
  *
  *  @return Accel values in meter per second squared.
  */
-static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width);
+//static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width);
 
 /*!
  *  @brief This function converts lsb to degree per second for 16 bit gyro at
@@ -115,7 +91,7 @@ static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width);
  *
  *  @return Degree per second.
  */
-static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width);
+//static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width);
 
 
 
@@ -125,6 +101,13 @@ static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width);
  */
 
 static struct bmi2_dev bmi;
+
+struct bmi2_dev* get_bmi2_device_ptr(void){
+    return &bmi;
+}
+
+
+
 
 
 int custom_door___accel_gyro_init(void)
@@ -236,29 +219,6 @@ int custom_door___accel_gyro_read(custom_accel_gyro_data_t *data) {
 #if WITH_FIFO
 
 
-/******************************************************************************/
-/*!                  Macros                                                   */
-
-/*! Buffer size allocated to store raw FIFO data. */
-#define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
-
-/*! Length of data to be read from FIFO. */
-#define BMI2_FIFO_RAW_DATA_USER_LENGTH  UINT16_C(2048)
-
-/*! Number of accel frames to be extracted from FIFO. */
-
-/*! Calculation for frame count: Total frame count = Fifo buffer size(2048)/ Total frames(6 Accel, 6 Gyro and 1 header,
- * totaling to 13) which equals to 157.
- *
- * Extra frames to parse sensortime da  ta
- */
-#define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(185)
-
-/*! Number of gyro frames to be extracted from FIFO. */
-#define BMI2_FIFO_GYRO_FRAME_COUNT      UINT8_C(185)
-
-/*! Macro to read sensortime byte in FIFO. */
-#define SENSORTIME_OVERHEAD_BYTE        UINT8_C(220)
 
 /******************************************************************************/
 /*!                        Global Variables                                   */
@@ -272,6 +232,7 @@ uint16_t fifo_buffer_size = BMI2_FIFO_RAW_DATA_BUFFER_SIZE + SENSORTIME_OVERHEAD
  */
 uint8_t fifo_data[BMI2_FIFO_RAW_DATA_BUFFER_SIZE + SENSORTIME_OVERHEAD_BYTE];
 
+
 /* Array of accelerometer frames -> Total bytes =
 * 157 * (6 axes + 1 header bytes) = 1099 bytes */
 struct bmi2_sens_axes_data fifo_accel_data[BMI2_FIFO_ACCEL_FRAME_COUNT] = { { 0 } };
@@ -282,11 +243,13 @@ struct bmi2_sens_axes_data fifo_gyro_data[BMI2_FIFO_GYRO_FRAME_COUNT] = { { 0 } 
 
 
 
-int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
+//int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
+int custom_door___accel_gyro_read_fifo(uint16_t* fifoDepth)
 {
     //printf("FIFO.\n");
+    //__fifoDataPtr = fifo_data;
 
-    if(cb == NULL) { return -1; }
+    //if(cb == NULL) { return -1; }
 
     int8_t rslt;
     uint16_t fifo_length = 0;
@@ -325,10 +288,11 @@ int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
     bmi2_extract_gyro(fifo_gyro_data, &gyro_frame_length, &fifoframe, &bmi);
 
     /* Pair accel + gyro by index */
-    uint16_t count = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
+    *fifoDepth = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
     //printf("accel frames extracted:%d ; gyro frames extracted:%d \n", accel_frame_length, gyro_frame_length);
     //printf("FIFO length:%d\n", count);
 
+    /*
     for(uint16_t i = 0; i < count; i++) {
         custom_accel_gyro_data_t sample;
 
@@ -342,7 +306,7 @@ int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
 
         cb(&sample, ctx);
     }
-
+    */
 
     return 0;
 }
@@ -446,7 +410,7 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
  * @brief This function converts lsb to meter per second squared for 16 bit accelerometer at
  * range 2G, 4G, 8G or 16G.
  */
-static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
+float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
 {
     double power = 2;
 
@@ -459,7 +423,7 @@ static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
  * @brief This function converts lsb to degree per second for 16 bit gyro at
  * range 125, 250, 500, 1000 or 2000dps.
  */
-static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
+float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
 {
     double power = 2;
 
