@@ -5,8 +5,17 @@
 #include "bmi270.h"
 
 
-/******************************************************************************/
-/*!                  Macros                                                   */
+
+
+// tune these values as needed to lower power consumption
+#define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_50HZ   // 50 Hz
+#define BMI2_GYR_ODR_SPEED_HZ   BMI2_GYR_ODR_50HZ   // 50 Hz
+
+#define BMI2_GYR_RANGE_DPS      BMI2_GYR_RANGE_250  // 250 dps
+#define BMI2_GYR_RANGE_DPS_VAL  BMI2_GYR_RANGE_250_VAL  // 250 dps
+
+
+
 
 /*! Buffer size allocated to store raw FIFO data. */
 #define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
@@ -28,6 +37,12 @@
 
 /*! Macro to read sensortime byte in FIFO. */
 #define SENSORTIME_OVERHEAD_BYTE        UINT8_C(220)
+
+
+
+
+#define TO_MPS2(axis)  lsb_to_mps2(axis, 2.0f,                     get_bmi2_device_ptr()->resolution);
+#define TO_DPS(axis)   lsb_to_dps (axis, BMI2_GYR_RANGE_DPS_VAL,   get_bmi2_device_ptr()->resolution);
 
 
 

@@ -26,29 +26,6 @@
 #define WITH_FIFO               1
 
 
-// tune these values as needed to lower power consumption
-#define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_50HZ   // 50 Hz
-#define BMI2_GYR_ODR_SPEED_HZ   BMI2_GYR_ODR_50HZ   // 50 Hz
-#define BMI2_GYR_RANGE_DPS      BMI2_GYR_RANGE_250  // 250 dps
-
-
-// gyro range selection
-#if BMI2_GYR_RANGE_DPS == 0
-const float gyro_dps = BMI2_GYR_RANGE_2000_VAL;
-#elif BMI2_GYR_RANGE_DPS == 1
-const float gyro_dps = BMI2_GYR_RANGE_1000_VAL;
-#elif BMI2_GYR_RANGE_DPS == 2
-const float gyro_dps = BMI2_GYR_RANGE_500_VAL;
-#elif BMI2_GYR_RANGE_DPS == 3
-const float gyro_dps = BMI2_GYR_RANGE_250_VAL;
-#elif BMI2_GYR_RANGE_DPS == 4
-const float gyro_dps = BMI2_GYR_RANGE_125_VAL;
-#else
-#error "gyro_dps unknown"
-#endif
-
-
-
 
 
 // static
@@ -202,9 +179,9 @@ int custom_door___accel_gyro_read(custom_accel_gyro_data_t *data) {
         data->acc_y = lsb_to_mps2(sensor_data.acc.y,  2.0f, bmi.resolution);
         data->acc_z = lsb_to_mps2(sensor_data.acc.z,  2.0f, bmi.resolution);
 
-        data->gyr_x = lsb_to_dps(sensor_data.gyr.x, gyro_dps, bmi.resolution);
-        data->gyr_y = lsb_to_dps(sensor_data.gyr.y, gyro_dps, bmi.resolution);
-        data->gyr_z = lsb_to_dps(sensor_data.gyr.z, gyro_dps, bmi.resolution);
+        data->gyr_x = lsb_to_dps(sensor_data.gyr.x, BMI2_GYR_RANGE_DPS_VAL, bmi.resolution);
+        data->gyr_y = lsb_to_dps(sensor_data.gyr.y, BMI2_GYR_RANGE_DPS_VAL, bmi.resolution);
+        data->gyr_z = lsb_to_dps(sensor_data.gyr.z, BMI2_GYR_RANGE_DPS_VAL, bmi.resolution);
         return 0;
     }
     return -1;
