@@ -387,14 +387,22 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
  * @brief This function converts lsb to meter per second squared for 16 bit accelerometer at
  * range 2G, 4G, 8G or 16G.
  */
+/*
 float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
 {
-    double power = 2;
-
-    float half_scale = (float)((pow((double)power, (double)bit_width) / (double)2.0f));
+    // half_scale = 2^(bit_width-1) computed in float to use the single-precision FPU
+    float half_scale = ldexpf(1.0f, (int)bit_width - 1);
 
     return (GRAVITY_EARTH * val * g_range) / half_scale;
+}*/
+
+// even faster version
+float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
+{
+    // multiplication by 2^(1 - bit_width) to avoid division
+    return ldexpf(GRAVITY_EARTH * (float)val * g_range, 1 - (int)bit_width);
 }
+
 
 /*!
  * @brief This function converts lsb to degree per second for 16 bit gyro at
@@ -402,9 +410,8 @@ float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
  */
 float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
 {
-    double power = 2;
-
-    float half_scale = (float)((pow((double)power, (double)bit_width) / (double)2.0f));
+    // half_scale = 2^(bit_width-1) computed in float to use the single-precision FPU
+    float half_scale = ldexpf(1.0f, (int)bit_width - 1);
 
     return (dps / (half_scale)) * (val);
 }
