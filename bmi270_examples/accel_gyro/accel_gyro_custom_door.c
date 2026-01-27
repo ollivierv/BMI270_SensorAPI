@@ -118,8 +118,11 @@ int custom_door___accel_gyro_init(void)
                 /* Disable all FIFO configurations first */
                 bmi2_set_fifo_config(BMI2_FIFO_ALL_EN, BMI2_DISABLE, &bmi);
 
-                /* Enable FIFO for accel and gyro (header mode is default) */
-                bmi2_set_fifo_config(BMI2_FIFO_ACC_EN | BMI2_FIFO_GYR_EN, BMI2_ENABLE, &bmi);
+                ///* Enable FIFO for accel and gyro (header mode is default) */
+                //bmi2_set_fifo_config(BMI2_FIFO_ACC_EN | BMI2_FIFO_GYR_EN, BMI2_ENABLE, &bmi);
+
+                /* Enable FIFO for accel and gyro + sensor time */
+                bmi2_set_fifo_config(BMI2_FIFO_ACC_EN | BMI2_FIFO_GYR_EN | BMI2_FIFO_TIME_EN, BMI2_ENABLE, &bmi);
 
             #endif
 
@@ -220,14 +223,12 @@ struct bmi2_sens_axes_data fifo_gyro_data[BMI2_FIFO_GYRO_FRAME_COUNT] = { { 0 } 
 
 
 
-//int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx)
-int custom_door___accel_gyro_read_fifo(uint16_t* fifoDepth)
+/**
+ * @brief This function reads accel and gyro data from FIFO and fills the
+ *        global fifo_accel_data and fifo_gyro_data arrays.
+ */
+int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth, uint32_t* ouSensortime, uint16_t* outSkippedFrameCount)
 {
-    //printf("FIFO.\n");
-    //__fifoDataPtr = fifo_data;
-
-    //if(cb == NULL) { return -1; }
-
     int8_t rslt;
     uint16_t fifo_length = 0;
 
@@ -257,7 +258,6 @@ int custom_door___accel_gyro_read_fifo(uint16_t* fifoDepth)
     }
 
 
-
     /* Extract accel */
     bmi2_extract_accel(fifo_accel_data, &accel_frame_length, &fifoframe, &bmi);
 
@@ -265,25 +265,17 @@ int custom_door___accel_gyro_read_fifo(uint16_t* fifoDepth)
     bmi2_extract_gyro(fifo_gyro_data, &gyro_frame_length, &fifoframe, &bmi);
 
     /* Pair accel + gyro by index */
-    *fifoDepth = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
-    //printf("accel frames extracted:%d ; gyro frames extracted:%d \n", accel_frame_length, gyro_frame_length);
-    //printf("FIFO length:%d\n", count);
+    *outFifoDepth = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
 
-    /*
-    for(uint16_t i = 0; i < count; i++) {
-        custom_accel_gyro_data_t sample;
-
-        sample.acc_x = lsb_to_mps2(fifo_accel_data[i].x, 2.0f, bmi.resolution);
-        sample.acc_y = lsb_to_mps2(fifo_accel_data[i].y, 2.0f, bmi.resolution);
-        sample.acc_z = lsb_to_mps2(fifo_accel_data[i].z, 2.0f, bmi.resolution);
-
-        sample.gyr_x = lsb_to_dps(fifo_gyro_data[i].x, gyro_dps, bmi.resolution);
-        sample.gyr_y = lsb_to_dps(fifo_gyro_data[i].y, gyro_dps, bmi.resolution);
-        sample.gyr_z = lsb_to_dps(fifo_gyro_data[i].z, gyro_dps, bmi.resolution);
-
-        cb(&sample, ctx);
+   /* Récupération du temps capteur */
+    if(ouSensortime) {
+        *ouSensortime = fifoframe.sensor_time;
     }
-    */
+
+    /* Récupération des frames sautées (perte de données) */
+    if(outSkippedFrameCount) {
+        *outSkippedFrameCount = fifoframe.skipped_frame_count;
+    }
 
     return 0;
 }

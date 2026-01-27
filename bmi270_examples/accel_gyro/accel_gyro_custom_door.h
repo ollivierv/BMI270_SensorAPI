@@ -18,6 +18,7 @@
 
 
 
+#if 0 // FIFO very large : ~ 157 entries of accel + gyro
 
 /*! Buffer size allocated to store raw FIFO data. */
 #define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
@@ -30,7 +31,7 @@
 /*! Calculation for frame count: Total frame count = Fifo buffer size(2048)/ Total frames(6 Accel, 6 Gyro and 1 header,
  * totaling to 13) which equals to 157.
  *
- * Extra frames to parse sensortime da  ta
+ * Extra frames to parse sensortime data
  */
 #define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(185)
 
@@ -40,6 +41,22 @@
 /*! Macro to read sensortime byte in FIFO. */
 #define SENSORTIME_OVERHEAD_BYTE        UINT8_C(220)
 
+#else
+
+/* 1. Réduire la taille du buffer brut (ex: 1024 octets) */
+#define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(1024)
+#define BMI2_FIFO_RAW_DATA_USER_LENGTH  UINT16_C(1024)
+
+/* 2. Fixer le nombre de frames à 60 */
+#define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(64)
+#define BMI2_FIFO_GYRO_FRAME_COUNT      UINT8_C(64)
+
+/* 3. Ajuster l'overhead du sensortime (facultatif, mais cohérent) */
+// Vous pouvez le réduire proportionnellement, par exemple à 100
+#define SENSORTIME_OVERHEAD_BYTE        UINT8_C(100)
+
+
+#endif
 
 
 
@@ -70,12 +87,8 @@ void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_
 int custom_door___accel_gyro_enable(void);
 int custom_door___accel_gyro_disable(void);
 
-
-//int custom_door___accel_gyro_read_fifo( void (*sample_cb)(custom_accel_gyro_data_t *sample));
-//int custom_door___accel_gyro_read_fifo(fifo_cb_t cb, void *ctx);
-int custom_door___accel_gyro_read_fifo(uint16_t* fifoDepth);
+int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth, uint32_t* ouSensortime, uint16_t* outSkippedFrameCount);
 void custom_door___accel_gyro_fifo_flush(void);
-
 
 float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width);
 float lsb_to_dps(int16_t val, float dps, uint8_t bit);
