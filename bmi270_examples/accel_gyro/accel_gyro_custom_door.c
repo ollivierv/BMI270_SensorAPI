@@ -160,10 +160,23 @@ int custom_door___accel_gyro_enable(void){
 
 int custom_door___accel_gyro_disable(void){
 
-    int8_t rslt = bmi2_sensor_disable(sensor_list, 2, &bmi);
+    int8_t rslt;
+
+    /* Disable accel and gyro sensors first */
+    rslt = bmi2_sensor_disable(sensor_list, 2, &bmi);
     bmi2_error_codes_print_result(rslt);
 
-    return (bmi2_set_adv_power_save(BMI2_ENABLE, &bmi) == BMI2_OK) ? 0 : -1;
+#if WITH_FIFO
+    /* Disable FIFO so the device can enter lowest power state */
+    rslt = bmi2_set_fifo_config(BMI2_FIFO_ALL_EN, BMI2_DISABLE, &bmi);
+    bmi2_error_codes_print_result(rslt);
+#endif
+
+    /* Enable advanced power save to minimize current consumption */
+    rslt = bmi2_set_adv_power_save(BMI2_ENABLE, &bmi);
+    bmi2_error_codes_print_result(rslt);
+
+    return (rslt == BMI2_OK) ? 0 : -1;
 }
 
 
