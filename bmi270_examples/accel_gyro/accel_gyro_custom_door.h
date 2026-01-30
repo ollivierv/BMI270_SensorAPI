@@ -6,15 +6,23 @@
 
 
 
+#define BMI2_CHECK(cmd) ({ int8_t _rslt = (cmd); bmi2_error_codes_print_result(_rslt); _rslt; })
+
 
 // tune these values as needed to lower power consumption
-#define BMI2_ACC_ODR_SPEED_HZ   BMI2_ACC_ODR_50HZ   // 50 Hz
-#define BMI2_GYR_ODR_SPEED_HZ   BMI2_GYR_ODR_50HZ   // 50 Hz
+#define BMI2_ACC_ODR_DEFAULT            BMI2_ACC_ODR_50HZ
+#define BMI2_GYR_ODR_DEFAULT            BMI2_GYR_ODR_50HZ
+#define BMI2_GYR_NOISE_PERF_DEFAULT     BMI2_POWER_OPT_MODE
 
-#define BMI2_GYR_RANGE_DPS      BMI2_GYR_RANGE_250  // 250 dps
-#define BMI2_GYR_RANGE_DPS_VAL  BMI2_GYR_RANGE_250_VAL  // 250 dps
 
-#define BMI2_MPS2_RANGE         2.0f               // +/- 2g
+#define BMI2_GYR_ODR_HIGH               BMI2_GYR_ODR_200HZ
+#define BMI2_GYR_NOISE_PERF_HIGH        BMI2_PERF_OPT_MODE
+
+#define BMI2_GYR_RANGE_DPS              BMI2_GYR_RANGE_250  // 250 dps
+#define BMI2_GYR_RANGE_DPS_VAL          BMI2_GYR_RANGE_250_VAL  // 250 dps
+
+#define BMI2_MPS2_RANGE                 2.0f               // +/- 2g
+
 
 
 
@@ -41,7 +49,9 @@
 /*! Macro to read sensortime byte in FIFO. */
 #define SENSORTIME_OVERHEAD_BYTE        UINT8_C(220)
 
-#else
+#endif
+
+#if 0
 
 /* 1. Réduire la taille du buffer brut (ex: 1024 octets) */
 #define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(1024)
@@ -57,6 +67,29 @@
 
 
 #endif
+
+
+#if 1
+
+/*! Buffer size allocated to store raw FIFO data */
+#define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
+
+/*! Length of data to be read from FIFO */
+#define BMI2_FIFO_RAW_DATA_USER_LENGTH  UINT16_C(2048)
+
+/*! Number of accel frames to be extracted from FIFO */
+
+/*! Calculation for frame count: Total frame count = Fifo buffer size(2048)/ Total frames(6 Accel, 6 Gyro totaling to
+ * 12) which equals to 170.
+ */
+#define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(170)
+
+/*! Number of gyro frames to be extracted from FIFO */
+#define BMI2_FIFO_GYRO_FRAME_COUNT      UINT8_C(170)
+
+#endif
+
+
 
 
 
@@ -87,11 +120,16 @@ void custom_door___accel_gyro_print(uint32_t indx, const custom_accel_gyro_data_
 int custom_door___accel_gyro_enable(void);
 int custom_door___accel_gyro_disable(void);
 
-int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth, uint32_t* ouSensortime, uint16_t* outSkippedFrameCount);
+int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth); //, uint32_t* outSensortime, uint16_t* outSkippedFrameCount);
 void custom_door___accel_gyro_fifo_flush(void);
+
 
 float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width);
 float lsb_to_dps(int16_t val, float dps, uint8_t bit);
+
+int custom_door___reconfig_acc_gyro_default(void);
+int custom_door___config_acc_gyro_default(void);
+int custom_door___config_acc_gyro_high_ODR(void);
 
 
 #endif // ACCEL_GYRO_CUSTOM_DOOR_H
