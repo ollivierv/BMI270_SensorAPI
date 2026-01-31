@@ -69,7 +69,7 @@
 #endif
 
 
-#if 1
+#if 0 // for 200Hz ODR
 
 /*! Buffer size allocated to store raw FIFO data */
 #define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(2048)
@@ -89,6 +89,26 @@
 
 #endif
 
+
+#if 1 // for 50Hz ODR
+
+/*! Buffer size allocated to store raw FIFO data */
+#define BMI2_FIFO_RAW_DATA_BUFFER_SIZE  UINT16_C(1024)
+
+/*! Length of data to be read from FIFO */
+#define BMI2_FIFO_RAW_DATA_USER_LENGTH  UINT16_C(1024)
+
+/*! Number of accel frames to be extracted from FIFO */
+
+/*! Calculation for frame count: Total frame count = Fifo buffer size(1024)/ Total frames(6 Accel, 6 Gyro totaling to
+ * 12) which equals to 85.
+ */
+#define BMI2_FIFO_ACCEL_FRAME_COUNT     UINT8_C(85)
+
+/*! Number of gyro frames to be extracted from FIFO */
+#define BMI2_FIFO_GYRO_FRAME_COUNT      UINT8_C(85)
+
+#endif
 
 
 
@@ -131,5 +151,6 @@ int custom_door___reconfig_acc_gyro_default(void);
 int custom_door___config_acc_gyro_default(void);
 int custom_door___config_acc_gyro_high_ODR(void);
 
+int custom_door___is_gyro_running(void);
 
 #endif // ACCEL_GYRO_CUSTOM_DOOR_H

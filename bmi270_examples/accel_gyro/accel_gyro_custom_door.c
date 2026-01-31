@@ -86,15 +86,20 @@ struct bmi2_dev* get_bmi2_device_ptr(void){
 
 int custom_door___accel_gyro_init(void) {
 
-   /* Interface reference is given as a parameter
-     * For I2C : BMI2_I2C_INTF
-     * For SPI : BMI2_SPI_INTF
-     */
+    // configure interface (I2C/SPI)
     BMI2_CHECK(bmi2_interface_init(&bmi, BMI2_I2C_INTF)); // custom uses I2C
 
-    /* Initialize bmi270. */
+    // initialize bmi270
     if(bmi270_init(&bmi) == BMI2_OK) {
+
+        // set default config for acc/gyro
         custom_door___config_acc_gyro_default();
+
+        // power optimizations (should be 3.5µA suspended)
+        bmi2_set_fifo_self_wake_up(BMI2_ENABLE, &bmi);  // enable fifo self wake up (best option for power consumption)
+        bmi2_set_fast_power_up(BMI2_DISABLE, &bmi);     // disable fast power up (best option for power consumption)
+
+        // suspend sensors to save power
         custom_door___accel_gyro_disable();
         return 0;
     }
@@ -111,6 +116,16 @@ int custom_door___accel_gyro_enable(void){
 int custom_door___accel_gyro_disable(void){
     BMI2_CHECK(bmi2_sensor_disable(sensor_list, 2, &bmi));
     BMI2_CHECK(bmi2_set_adv_power_save(BMI2_ENABLE, &bmi));
+    return 0;
+}
+
+int custom_door___is_gyro_running(void){
+    uint8_t pwr_ctrl = 0;
+    if(bmi2_get_regs(BMI2_PWR_CTRL_ADDR, &pwr_ctrl, 1, &bmi) == BMI2_OK) {
+        if(pwr_ctrl & BMI2_GYR_EN_MASK) {
+            return 1; // Le gyroscope est ACTIF
+        }
+    }
     return 0;
 }
 
