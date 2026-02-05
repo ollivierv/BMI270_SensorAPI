@@ -119,6 +119,16 @@ int custom_door___accel_gyro_disable(void){
     return 0;
 }
 
+/*
+int custom_door___checkChipId(void) {
+    uint8_t chip_id = 0;
+    if(bmi2_get_regs(BMI2_CHIP_ID_ADDR, &chip_id, 1, &bmi) == BMI2_OK) {
+        return (chip_id == BMI2_CHIP_ID) ? 0 : -1; // 0 if chip id matches, -1 otherwise
+    }
+    return -1;
+}*/
+
+
 int custom_door___is_gyro_running(void){
     uint8_t pwr_ctrl = 0;
     if(bmi2_get_regs(BMI2_PWR_CTRL_ADDR, &pwr_ctrl, 1, &bmi) == BMI2_OK) {
@@ -354,10 +364,8 @@ struct bmi2_sens_axes_data fifo_gyro_data[BMI2_FIFO_GYRO_FRAME_COUNT] = { { 0 } 
  * @brief This function reads accel and gyro data from FIFO and fills the
  *        global fifo_accel_data and fifo_gyro_data arrays.
  */
-#warning "verifier pourquoi la fonction est si lente"
-int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth) //, uint32_t* outSensortime, uint16_t* outSkippedFrameCount)
+int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth)
 {
-
     uint16_t fifo_length = 0;
     *outFifoDepth = 0;
 
@@ -394,7 +402,6 @@ int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth) //, uint32_t* out
 
     /* Pair accel + gyro by index */
     *outFifoDepth = (accel_frame_length < gyro_frame_length) ? accel_frame_length : gyro_frame_length;
-
 
     return 0;
 }
