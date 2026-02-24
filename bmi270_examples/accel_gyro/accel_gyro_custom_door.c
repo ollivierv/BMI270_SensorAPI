@@ -387,6 +387,7 @@ int custom_door___accel_gyro_read_fifo(uint16_t* outFifoDepth)
     /* Setup FIFO frame */
     fifoframe.data   = fifo_data;
     fifoframe.length = fifo_length + bmi.dummy_byte;
+    //printf("\n\n =====>>>>> FIFO Length: %d bytes\n\n", fifo_length);
 
     /* Read FIFO */
     if(BMI2_CHECK(bmi2_read_fifo_data(&fifoframe, &bmi)) != BMI2_OK) {
